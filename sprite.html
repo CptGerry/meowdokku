@@ -229,8 +229,14 @@
     </div>
 
     <div class="info">
-        <div class="vidas">Vidas: <span id="contador-vidas">3</span> ❤️</div>
-        <div class="gatos">Sprites: <span id="contador-gatos">0</span> / 8 <img src="sprite8.png" class="icono-texto" alt="Gato"></div>
+        <div class="vidas" id="caja-vidas">Vidas: <span id="contador-vidas">3</span> ❤️</div>
+        <div class="gatos">Sprites: <span id="contador-gatos">0</span> / 8 <img src="sprite8.png" class="icono-texto" alt="Sprite"></div>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        <label style="cursor: pointer; font-weight: bold; font-size: 1.1rem; color: var(--accent); background: var(--container-bg); padding: 10px 15px; border-radius: 8px; box-shadow: 0 2px 5px var(--shadow);">
+            <input type="checkbox" id="check-facil" onchange="toggleModoFacil()"> 🟢 Modo Fácil (Asistente Visual)
+        </label>
     </div>
     
     <div id="contenedor-juego">
@@ -248,6 +254,44 @@
         let vidas = 3;
         let gatosColocados = 0;
         let celdasGatos = []; 
+        let modoFacil = false;
+
+        function toggleModoFacil() {
+            modoFacil = document.getElementById('check-facil').checked;
+            const cajaVidas = document.getElementById('caja-vidas');
+            
+            // Oculta las vidas si está activado, las muestra si está desactivado
+            if (modoFacil) {
+                cajaVidas.style.display = 'none'; 
+            } else {
+                cajaVidas.style.display = 'block'; 
+            }
+        }
+
+        // El asistente que marca las zonas prohibidas automáticamente
+        function marcarAutomaticamente(filaColocada, colColocada, regionColocada) {
+            const todasLasCasillas = document.querySelectorAll('.casilla');
+            
+            todasLasCasillas.forEach(celda => {
+                let f = parseInt(celda.dataset.fila);
+                let c = parseInt(celda.dataset.col);
+                let r = parseInt(celda.dataset.region);
+                
+                // Calculamos si la casilla choca con las 4 reglas del juego
+                let mismaFila = (f === filaColocada);
+                let mismaColumna = (c === colColocada);
+                let mismaRegion = (r === regionColocada);
+                let tocaDiagonal = (Math.abs(f - filaColocada) <= 1 && Math.abs(c - colColocada) <= 1);
+                
+                if (mismaFila || mismaColumna || mismaRegion || tocaDiagonal) {
+                    // Solo marcamos si está vacía (no es un sprite ya colocado ni tiene una X)
+                    if (!celda.classList.contains('tiene-gato') && celda.innerText !== '❌') {
+                        celda.innerText = '❌';
+                        celda.classList.add('marcada');
+                    }
+                }
+            });
+        }
 
         const tableroDiv = document.getElementById('tablero');
         const vidasSpan = document.getElementById('contador-vidas');
@@ -378,23 +422,51 @@
         }
 
         function manejarClic(celda, fila, col) {
-            if (vidas <= 0 || gatosColocados === 8) return;
+            // Ya no bloqueamos si vidas <= 0 mientras el Modo Fácil esté activo
+            if ((vidas <= 0 && !modoFacil) || gatosColocados === 8) return;
+            
             const region = parseInt(celda.dataset.region);
+            
             if (celda.classList.contains('tiene-gato')) {
                 celda.classList.remove('tiene-gato', `icono-sprite-${region}`);
                 celdasGatos = celdasGatos.filter(g => g.f !== fila || g.c !== col);
-                actualizarUI(); return;
+                actualizarUI(); 
+                return;
             }
+            
             const error = validar(fila, col, region);
             if (error) {
-                vidas--; vidasSpan.innerText = vidas;
-                mensajeDiv.innerText = `❌ ${error}`;
-                if (vidas === 0) { mensajeDiv.innerText = "💀 Juego Terminado"; btnReiniciar.innerText = "Reintentar"; btnReiniciar.style.display = "block"; }
+                if (!modoFacil) { 
+                    // PENALIZACIÓN NORMAL
+                    vidas--; vidasSpan.innerText = vidas;
+                    mensajeDiv.innerText = `❌ ${error}`;
+                    if (vidas === 0) { 
+                        mensajeDiv.innerText = "💀 Juego Terminado"; 
+                        btnReiniciar.innerText = "Reintentar"; 
+                        btnReiniciar.style.display = "block"; 
+                    }
+                } else {
+                    // MODO FÁCIL: Solo avisa del error, pero no quita vidas
+                    mensajeDiv.innerText = `❌ ${error}`;
+                }
             } else {
-                celda.classList.add('tiene-gato', `icono-sprite-${region}`); celda.classList.remove('marcada');
+                // MOVIMIENTO VÁLIDO
+                celda.classList.add('tiene-gato', `icono-sprite-${region}`); 
+                celda.classList.remove('marcada');
                 celdasGatos.push({ f: fila, c: col, r: region });
                 actualizarUI();
-                if (gatosColocados === 8) { mensajeDiv.innerText = "🏆 ¡Spri-tástico!"; mensajeDiv.style.color = "#4ecf4e"; btnReiniciar.innerText = "Siguiente Nivel"; btnReiniciar.style.display = "block"; }
+                
+                // ¡Disparar la magia del Modo Fácil!
+                if (modoFacil) {
+                    marcarAutomaticamente(fila, col, region);
+                }
+
+                if (gatosColocados === 8) { 
+                    mensajeDiv.innerText = "🏆 ¡Excelente!"; 
+                    mensajeDiv.style.color = "#4ecf4e"; 
+                    btnReiniciar.innerText = "Siguiente Nivel"; 
+                    btnReiniciar.style.display = "block"; 
+                }
             }
         }
 
