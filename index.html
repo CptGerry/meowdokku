@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meowdokku - Menú Principal</title>
     <style>
+        /* Variables de color para los dos modos */
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --container-bg: #fff;
+            --shadow: rgba(0,0,0,0.1);
+        }
+
+        body.dark-mode {
+            --bg-color: #1a1a1b;
+            --text-color: #e0e0e0;
+            --container-bg: #2d2d2e;
+            --shadow: rgba(0,0,0,0.5);
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
@@ -12,9 +27,25 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-color: #f4f4f9;
-            color: #333;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Botón Modo Nocturno flotando arriba a la derecha */
+        #btn-mode {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 20px;
+            border: 1px solid var(--text-color);
+            background: transparent;
+            color: var(--text-color);
+            font-weight: bold;
+            transition: all 0.3s;
         }
 
         h1 {
@@ -23,22 +54,23 @@
         }
 
         .menu-contenedor {
-            background-color: #fff;
+            background-color: var(--container-bg);
             padding: 40px;
             border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 20px var(--shadow);
             text-align: center;
             width: 90%;
             max-width: 400px;
+            transition: background-color 0.3s, box-shadow 0.3s;
         }
 
         .menu-contenedor p {
             font-size: 1.1rem;
-            color: #666;
+            color: var(--text-color);
+            opacity: 0.8; /* Un poco más suave que el título */
             margin-bottom: 30px;
         }
 
-        /* Estilos de los botones del menú */
         .btn-menu {
             display: block;
             width: 100%;
@@ -58,10 +90,9 @@
             filter: brightness(1.1);
         }
 
-        .btn-clasico { background-color: #ff9f43; } /* Naranja */
-        .btn-tematico { background-color: #007BFF; } /* Azul */
+        .btn-clasico { background-color: #ff9f43; } 
+        .btn-tematico { background-color: #007BFF; } 
         
-        /* Ajuste para que el sprite8 encaje bien dentro del botón */
         .icono-texto {
             height: 1.2em;
             vertical-align: middle;
@@ -70,6 +101,8 @@
     </style>
 </head>
 <body>
+
+    <button id="btn-mode" onclick="toggleDarkMode()">🌙 Modo</button>
 
     <h1>🐱 Meowdokku</h1>
     
@@ -83,6 +116,14 @@
             <img src="sprite8.png" class="icono-texto" alt="Sprite"> Modo Sprites
         </a>
     </div>
+
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const btn = document.getElementById('btn-mode');
+            btn.innerText = document.body.classList.contains('dark-mode') ? "☀️ Modo" : "🌙 Modo";
+        }
+    </script>
 
 </body>
 </html>
