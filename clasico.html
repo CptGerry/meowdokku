@@ -240,6 +240,8 @@
             } else {
                 cajaVidas.style.display = 'block'; 
             }
+            // ¡Nueva línea!
+            recalcularMarcas();
         }
 
         function marcarAutomaticamente(filaColocada, colColocada, regionColocada) {
@@ -263,6 +265,24 @@
                     }
                 }
             });
+        }
+
+        function recalcularMarcas() {
+            // 1. Limpiamos TODAS las marcas "❌" del tablero
+            const todasLasCasillas = document.querySelectorAll('.casilla');
+            todasLasCasillas.forEach(celda => {
+                if (celda.innerText === '❌') {
+                    celda.innerText = '';
+                    celda.classList.remove('marcada');
+                }
+            });
+
+            // 2. Si el modo fácil está activo, repintamos las marcas de los gatos que aún quedan
+            if (modoFacil) {
+                celdasGatos.forEach(gato => {
+                    marcarAutomaticamente(gato.f, gato.c, gato.r);
+                });
+            }
         }
 
         const tableroDiv = document.getElementById('tablero');
@@ -428,6 +448,7 @@
                 celda.classList.remove('marcada');
                 celdasGatos.push({ f: fila, c: col, r: region });
                 actualizarUI(); // Igual aquí, usa actualizarContadorGatos() si tu código clásico usaba ese nombre
+                recalcularMarcas();
                 
                 // Disparamos el auto-marcado
                 if (modoFacil) {
