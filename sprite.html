@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meowdokku - Puzzle Lógico</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --container-bg: #fff;
+            --shadow: rgba(0,0,0,0.1);
+            --accent: #007BFF;
+        }
+
+        /* Variables para el Modo Nocturno */
+        body.dark-mode {
+            --bg-color: #1a1a1b;
+            --text-color: #e0e0e0;
+            --container-bg: #2d2d2e;
+            --shadow: rgba(0,0,0,0.5);
+            --accent: #4da3ff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding-top: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        h1 { margin: 0; font-size: 2.5rem; }
+
+        /* Botón Modo Nocturno */
+        #btn-mode {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 20px;
+            border: 1px solid var(--text-color);
+            background: transparent;
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        .reglas {
+            background-color: var(--container-bg);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px var(--shadow);
+            margin-bottom: 20px;
+            max-width: 440px;
+            text-align: center; /* Centra el contenido de la caja */
+        }
+
+        /* Nueva regla para mantener los puntos de la lista ordenados al centrar */
+        .reglas ul {
+            display: inline-block;
+            text-align: left;
+            margin: 0; 
+            padding-left: 20px;
+        }
+
+        .info {
+            display: flex;
+            gap: 30px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .vidas { color: #ff5e5e; }
+        .gatos { color: #4ecf4e; }
+        
+        #contenedor-juego { position: relative; }
+
+        #pantalla-carga {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--container-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent);
+            z-index: 10;
+            border-radius: 8px;
+            opacity: 0.9;
+        }
+
+        #tablero {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 2px;
+            background-color: #444;
+            border: 4px solid #444;
+            border-radius: 8px;
+            overflow: hidden;
+            /* Nuevas reglas responsivas */
+            width: 95vw; 
+            max-width: 400px;
+            aspect-ratio: 1; /* Fuerza a que el tablero sea siempre un cuadrado perfecto */
+        }
+        
+        .casilla {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* clamp() hace que el emoji del gato se encoja en pantallas pequeñas */
+            font-size: clamp(20px, 6vw, 30px); 
+            cursor: pointer;
+            user-select: none;
+        }
+        .casilla:hover { filter: brightness(0.9); }
+        .marcada { color: rgba(0, 0, 0, 0.4); font-size: 20px; }
+        body.dark-mode .marcada { color: rgba(255, 255, 255, 0.4); }
+
+        /* Colores de las regiones (se mantienen pasteles para que resalten en ambos modos) */
+        .color-0 { background-color: #FFADAD; } 
+        .color-1 { background-color: #FFD6A5; } 
+        .color-2 { background-color: #FDFFB6; } 
+        .color-3 { background-color: #CAFFBF; } 
+        .color-4 { background-color: #9BF6FF; } 
+        .color-5 { background-color: #A0C4FF; } 
+        .color-6 { background-color: #BDB2FF; } 
+        .color-7 { background-color: #FFC6FF; } 
+
+        .controles {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            min-height: 100px;
+        }
+
+        #mensaje {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ff5e5e;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        #btn-reiniciar {
+            display: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            background-color: var(--accent);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px var(--shadow);
+        }
+        .texto-movil { display: none; }
+
+        /* Si el dispositivo es táctil, ocultamos el de PC y mostramos el de móvil */
+        @media (pointer: coarse) {
+            .texto-pc { display: none; }
+            .texto-movil { display: inline; }
+        }
+
+        /* Clase general de lógica y tamaño */
+        .tiene-gato {
+            background-size: 80%;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        /* Clases específicas para cada uno de los 8 iconos */
+        .icono-sprite-0 { background-image: url('sprite0.png'); }
+        .icono-sprite-1 { background-image: url('sprite1.png'); }
+        .icono-sprite-2 { background-image: url('sprite2.png'); }
+        .icono-sprite-3 { background-image: url('sprite3.png'); }
+        .icono-sprite-4 { background-image: url('sprite4.png'); }
+        .icono-sprite-5 { background-image: url('sprite5.png'); }
+        .icono-sprite-6 { background-image: url('sprite6.png'); }
+        .icono-sprite-7 { background-image: url('sprite7.png'); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🐱 Meowdokku</h1>
+        <button id="btn-mode" onclick="toggleDarkMode()">🌙 Modo</button>
+    </header>
+    
+    <div class="reglas">
+        <h3>Reglas del Juego:</h3>
+        <ul>
+            <li>Encuentra los <strong>8 gatos</strong> escondidos.</li>
+            <li>Solo puede haber <strong>1 gato por cada color</strong>.</li>
+            <li>Solo puede haber <strong>1 gato por fila y por columna</strong>.</li>
+            <li>Los gatos <strong>no pueden tocarse</strong> (ni en diagonal).</li>
+            <li>
+                <span class="texto-pc"><strong>Clic izquierdo</strong></span>
+                <span class="texto-movil"><strong>Tocar</strong></span> 
+                para poner o quitar un gato.
+            </li>
+            <li>
+                <span class="texto-pc"><strong>Clic derecho</strong></span>
+                <span class="texto-movil"><strong>Mantener presionado</strong></span> 
+                para marcar (❌) casillas vacías.
+        </ul>
+    </div>
+
+    <div class="info">
+        <div class="vidas">Vidas: <span id="contador-vidas">3</span> ❤️</div>
+        <div class="gatos">Gatos: <span id="contador-gatos">0</span> / 8 🐱</div>
+    </div>
+    
+    <div id="contenedor-juego">
+        <div id="pantalla-carga">Maullando...</div>
+        <div id="tablero"></div>
+    </div>
+    
+    <div class="controles">
+        <div id="mensaje"></div>
+        <button id="btn-reiniciar" onclick="iniciarNuevaPartida()">Siguiente Nivel</button>
+    </div>
+
+    <script>
+        let mapaActual = [];
+        let vidas = 3;
+        let gatosColocados = 0;
+        let celdasGatos = []; 
+
+        const tableroDiv = document.getElementById('tablero');
+        const vidasSpan = document.getElementById('contador-vidas');
+        const gatosSpan = document.getElementById('contador-gatos');
+        const mensajeDiv = document.getElementById('mensaje');
+        const btnReiniciar = document.getElementById('btn-reiniciar');
+        const pantallaCarga = document.getElementById('pantalla-carga');
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const btn = document.getElementById('btn-mode');
+            btn.innerText = document.body.classList.contains('dark-mode') ? "☀️ Modo" : "🌙 Modo";
+        }
+
+        // Algoritmo Procedural (Paso 1: Gatos, Paso 2: Regiones, Paso 3: Solver)
+        function generarGatosSecretos() {
+            let posiciones = [];
+            function buscar(fila) {
+                if(fila === 8) return true;
+                let cols = [0,1,2,3,4,5,6,7].sort(() => Math.random() - 0.5);
+                for(let c of cols) {
+                    let valido = true;
+                    for(let p of posiciones) {
+                        if(p.c === c || (Math.abs(p.f - fila) <= 1 && Math.abs(p.c - c) <= 1)) {
+                            valido = false; break;
+                        }
+                    }
+                    if(valido) {
+                        posiciones.push({f: fila, c: c});
+                        if(buscar(fila+1)) return true;
+                        posiciones.pop(); 
+                    }
+                }
+                return false;
+            }
+            buscar(0);
+            return posiciones;
+        }
+
+        function expandirRegiones(gatos) {
+            let mapa = Array(8).fill().map(() => Array(8).fill(-1));
+            let frontera = [];
+            gatos.forEach((g, index) => {
+                mapa[g.f][g.c] = index;
+                frontera.push({f: g.f, c: g.c, r: index});
+            });
+            while(frontera.length > 0) {
+                let idx = Math.floor(Math.random() * frontera.length);
+                let actual = frontera.splice(idx, 1)[0];
+                let vecinos = [{f: actual.f-1, c: actual.c}, {f: actual.f+1, c: actual.c},
+                               {f: actual.f, c: actual.c-1}, {f: actual.f, c: actual.c+1}]
+                .filter(v => v.f >= 0 && v.f < 8 && v.c >= 0 && v.c < 8 && mapa[v.f][v.c] === -1);
+                if(vecinos.length > 0) {
+                    let v = vecinos[Math.floor(Math.random() * vecinos.length)];
+                    mapa[v.f][v.c] = actual.r;
+                    frontera.push(actual); 
+                    frontera.push({f: v.f, c: v.c, r: actual.r}); 
+                }
+            }
+            return mapa;
+        }
+
+        function contarSoluciones(mapa) {
+            let soluciones = 0;
+            let gatosTemp = [];
+            function resolver(fila) {
+                if (soluciones > 1) return; 
+                if (fila === 8) { soluciones++; return; }
+                for (let col = 0; col < 8; col++) {
+                    let region = mapa[fila][col];
+                    let valido = true;
+                    for (let g of gatosTemp) {
+                        if (g.c === col || g.r === region || (Math.abs(g.f - fila) <= 1 && Math.abs(g.c - col) <= 1)) {
+                            valido = false; break;
+                        }
+                    }
+                    if (valido) {
+                        gatosTemp.push({f: fila, c: col, r: region});
+                        resolver(fila + 1);
+                        gatosTemp.pop();
+                    }
+                }
+            }
+            resolver(0);
+            return soluciones;
+        }
+
+        function generarNivelProcedural() {
+            while(true) {
+                let gatos = generarGatosSecretos();
+                let mapa = expandirRegiones(gatos);
+                if(contarSoluciones(mapa) === 1) return mapa;
+            }
+        }
+
+        function iniciarNuevaPartida() {
+            vidas = 3; gatosColocados = 0; celdasGatos = [];
+            vidasSpan.innerText = vidas; gatosSpan.innerText = gatosColocados;
+            mensajeDiv.innerText = ""; btnReiniciar.style.display = "none";
+            tableroDiv.innerHTML = ""; pantallaCarga.style.display = "flex"; 
+
+            setTimeout(() => {
+                mapaActual = generarNivelProcedural();
+                dibujarTablero();
+                pantallaCarga.style.display = "none"; 
+            }, 50);
+        }
+
+        function dibujarTablero() {
+            for (let f = 0; f < 8; f++) {
+                for (let c = 0; c < 8; c++) {
+                    const celda = document.createElement('div');
+                    celda.className = `casilla color-${mapaActual[f][c]}`;
+                    celda.dataset.fila = f; celda.dataset.col = c;
+                    celda.dataset.region = mapaActual[f][c];
+                    celda.onclick = () => manejarClic(celda, f, c);
+                    celda.oncontextmenu = (e) => { e.preventDefault(); manejarClicDerecho(celda); };
+                    tableroDiv.appendChild(celda);
+                }
+            }
+        }
+
+        function manejarClicDerecho(celda) {
+            if (vidas <= 0 || gatosColocados === 8) return; 
+            if (celda.classList.contains('tiene-gato')) return;
+            celda.innerText = celda.innerText === '❌' ? '' : '❌';
+            celda.classList.toggle('marcada', celda.innerText === '❌');
+        }
+
+        function manejarClic(celda, fila, col) {
+            if (vidas <= 0 || gatosColocados === 8) return;
+            const region = parseInt(celda.dataset.region);
+            if (celda.classList.contains('tiene-gato')) {
+                celda.classList.remove('tiene-gato', `icono-gato-${region}`);
+                celdasGatos = celdasGatos.filter(g => g.f !== fila || g.c !== col);
+                actualizarUI(); return;
+            }
+            const region = parseInt(celda.dataset.region);
+            const error = validar(fila, col, region);
+            if (error) {
+                vidas--; vidasSpan.innerText = vidas;
+                mensajeDiv.innerText = `❌ ${error}`;
+                if (vidas === 0) { mensajeDiv.innerText = "💀 Juego Terminado"; btnReiniciar.innerText = "Reintentar"; btnReiniciar.style.display = "block"; }
+            } else {
+                celda.classList.add('tiene-gato', `icono-gato-${region}`); celda.classList.remove('marcada');
+                celdasGatos.push({ f: fila, c: col, r: region });
+                actualizarUI();
+                if (gatosColocados === 8) { mensajeDiv.innerText = "🏆 ¡Miau-tástico!"; mensajeDiv.style.color = "#4ecf4e"; btnReiniciar.innerText = "Siguiente Nivel"; btnReiniciar.style.display = "block"; }
+            }
+        }
+
+        function validar(f, c, r) {
+            for (let g of celdasGatos) {
+                if (g.f === f) return "Fila ocupada";
+                if (g.c === c) return "Columna ocupada";
+                if (g.r === r) return "Color ocupado";
+                if (Math.abs(g.f - f) <= 1 && Math.abs(g.c - c) <= 1) return "Gatos muy cerca";
+            }
+            return null;
+        }
+
+        function actualizarUI() {
+            gatosColocados = celdasGatos.length;
+            gatosSpan.innerText = gatosColocados;
+        }
+
+        iniciarNuevaPartida();
+    </script>
+</body>
+</html>
