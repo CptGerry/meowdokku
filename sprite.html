@@ -296,28 +296,29 @@
                 let tocaDiagonal = (Math.abs(f - filaColocada) <= 1 && Math.abs(c - colColocada) <= 1);
                 
                 if (mismaFila || mismaColumna || mismaRegion || tocaDiagonal) {
-                    // VERSIÓN SPRITE: Buscamos que NO tenga la clase 'tiene-gato' ni la clase 'marcada'
-                    if (!celda.classList.contains('tiene-gato') && !celda.classList.contains('marcada')) {
+                    // Si la casilla está vacía (sin sprite y sin cruz manual)
+                    if (!celda.classList.contains('tiene-gato') && celda.innerText !== '❌') {
                         celda.innerText = '❌';
-                        celda.classList.add('marcada');
+                        // AÑADIMOS UNA ETIQUETA INVISIBLE 'auto-marcada'
+                        celda.classList.add('marcada', 'auto-marcada');
                     }
                 }
             });
         }
 
-        // Limpia el tablero y vuelve a pintar solo lo necesario
+        // Limpia el tablero respetando las marcas manuales
         function recalcularMarcas() {
             const todasLasCasillas = document.querySelectorAll('.casilla');
             
-            // 1. Borramos TODAS las marcas usando la clase CSS
+            // 1. Borramos SOLO las marcas que tengan la etiqueta 'auto-marcada'
             todasLasCasillas.forEach(celda => {
-                if (celda.classList.contains('marcada')) {
+                if (celda.classList.contains('auto-marcada')) {
                     celda.innerText = '';
-                    celda.classList.remove('marcada');
+                    celda.classList.remove('marcada', 'auto-marcada');
                 }
             });
 
-            // 2. Si el modo fácil está activo, repintamos las marcas de los sprites vivos
+            // 2. Si el modo fácil está activo, repintamos las marcas automáticas de los sprites vivos
             if (modoFacil) {
                 celdasGatos.forEach(gato => {
                     marcarAutomaticamente(gato.f, gato.c, gato.r);
@@ -326,7 +327,6 @@
         }
 
         function manejarClic(celda, fila, col) {
-            // No bloqueamos por vidas si el Modo Fácil está activo
             if ((vidas <= 0 && !modoFacil) || gatosColocados === 8) return;
             
             const region = parseInt(celda.dataset.region);
@@ -336,7 +336,7 @@
                 celda.classList.remove('tiene-gato', `icono-sprite-${region}`);
                 celdasGatos = celdasGatos.filter(g => g.f !== fila || g.c !== col);
                 actualizarUI();
-                recalcularMarcas(); // Llama a la limpieza automáticamente
+                recalcularMarcas(); 
                 return;
             }
             
@@ -357,11 +357,11 @@
                 }
             } else {
                 celda.classList.add('tiene-gato', `icono-sprite-${region}`); 
-                celda.classList.remove('marcada');
+                // Al poner un sprite, limpiamos cualquier marca que hubiera debajo (manual o auto)
+                celda.classList.remove('marcada', 'auto-marcada'); 
                 celdasGatos.push({ f: fila, c: col, r: region });
                 actualizarUI();
                 
-                // Actualizamos las marcas (limpia y repinta todo perfecto)
                 recalcularMarcas(); 
 
                 if (gatosColocados === 8) { 
@@ -375,13 +375,14 @@
 
         function manejarClicDerecho(celda) {
             if ((vidas <= 0 && !modoFacil) || gatosColocados === 8) return; 
-            // VERSIÓN SPRITE: Validamos la clase
             if (celda.classList.contains('tiene-gato')) return;
             
+            // Si ya hay una marca (sea manual o auto), la quitamos
             if (celda.classList.contains('marcada')) {
                 celda.innerText = '';
-                celda.classList.remove('marcada');
+                celda.classList.remove('marcada', 'auto-marcada');
             } else {
+                // Si ponemos una marca manual, NO le ponemos la etiqueta 'auto-marcada'
                 celda.innerText = '❌';
                 celda.classList.add('marcada');
             }
@@ -489,7 +490,6 @@
             mensajeDiv.innerText = ""; btnReiniciar.style.display = "none";
             tableroDiv.innerHTML = ""; pantallaCarga.style.display = "flex"; 
 
-            // Reiniciar el botón de modo fácil
             document.getElementById('check-facil').checked = false;
             toggleModoFacil();
 
