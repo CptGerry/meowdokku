@@ -204,8 +204,14 @@
     </div>
 
     <div class="info">
-        <div class="vidas">Vidas: <span id="contador-vidas">3</span> ❤️</div>
+        <div class="vidas" id="caja-vidas">Vidas: <span id="contador-vidas">3</span> ❤️</div>
         <div class="gatos">Gatos: <span id="contador-gatos">0</span> / 8 🐱</div>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        <label style="cursor: pointer; font-weight: bold; font-size: 1.1rem; color: var(--accent); background: var(--container-bg); padding: 10px 15px; border-radius: 8px; box-shadow: 0 2px 5px var(--shadow);">
+            <input type="checkbox" id="check-facil" onchange="toggleModoFacil()"> 🟢 Modo Fácil (Asistente Visual)
+        </label>
     </div>
     
     <div id="contenedor-juego">
@@ -222,7 +228,42 @@
         let mapaActual = [];
         let vidas = 3;
         let gatosColocados = 0;
-        let celdasGatos = []; 
+        let celdasGatos = [];
+        let modoFacil = false;
+
+        function toggleModoFacil() {
+            modoFacil = document.getElementById('check-facil').checked;
+            const cajaVidas = document.getElementById('caja-vidas');
+            
+            if (modoFacil) {
+                cajaVidas.style.display = 'none'; 
+            } else {
+                cajaVidas.style.display = 'block'; 
+            }
+        }
+
+        function marcarAutomaticamente(filaColocada, colColocada, regionColocada) {
+            const todasLasCasillas = document.querySelectorAll('.casilla');
+            
+            todasLasCasillas.forEach(celda => {
+                let f = parseInt(celda.dataset.fila);
+                let c = parseInt(celda.dataset.col);
+                let r = parseInt(celda.dataset.region);
+                
+                let mismaFila = (f === filaColocada);
+                let mismaColumna = (c === colColocada);
+                let mismaRegion = (r === regionColocada);
+                let tocaDiagonal = (Math.abs(f - filaColocada) <= 1 && Math.abs(c - colColocada) <= 1);
+                
+                if (mismaFila || mismaColumna || mismaRegion || tocaDiagonal) {
+                    // ATENCIÓN AQUÍ: Verificamos que no haya un emoji de gato ni una X
+                    if (celda.innerText !== '🐱' && celda.innerText !== '❌') {
+                        celda.innerText = '❌';
+                        celda.classList.add('marcada');
+                    }
+                }
+            });
+        }
 
         const tableroDiv = document.getElementById('tablero');
         const vidasSpan = document.getElementById('contador-vidas');
@@ -353,23 +394,52 @@
         }
 
         function manejarClic(celda, fila, col) {
-            if (vidas <= 0 || gatosColocados === 8) return;
+            // No bloqueamos por vidas si el Modo Fácil está activo
+            if ((vidas <= 0 && !modoFacil) || gatosColocados === 8) return;
+            
+            const region = parseInt(celda.dataset.region);
+            
+            // Si hacemos clic en un gato ya puesto, lo quitamos
             if (celda.innerText === '🐱') {
                 celda.innerText = '';
                 celdasGatos = celdasGatos.filter(g => g.f !== fila || g.c !== col);
-                actualizarUI(); return;
+                actualizarUI(); // Asumiendo que tu función de actualizar UI se llama así, sino usa actualizarContadorGatos()
+                return;
             }
-            const region = parseInt(celda.dataset.region);
+            
             const error = validar(fila, col, region);
             if (error) {
-                vidas--; vidasSpan.innerText = vidas;
-                mensajeDiv.innerText = `❌ ${error}`;
-                if (vidas === 0) { mensajeDiv.innerText = "💀 Juego Terminado"; btnReiniciar.innerText = "Reintentar"; btnReiniciar.style.display = "block"; }
+                if (!modoFacil) { 
+                    // PENALIZACIÓN NORMAL
+                    vidas--; vidasSpan.innerText = vidas;
+                    mensajeDiv.innerText = `❌ ${error}`;
+                    if (vidas === 0) { 
+                        mensajeDiv.innerText = "💀 Juego Terminado"; 
+                        btnReiniciar.innerText = "Reintentar"; 
+                        btnReiniciar.style.display = "block"; 
+                    }
+                } else {
+                    // MODO FÁCIL: Solo avisa, no quita vidas
+                    mensajeDiv.innerText = `❌ ${error}`;
+                }
             } else {
-                celda.innerText = '🐱'; celda.classList.remove('marcada');
+                // MOVIMIENTO VÁLIDO: Ponemos el emoji del gato
+                celda.innerText = '🐱'; 
+                celda.classList.remove('marcada');
                 celdasGatos.push({ f: fila, c: col, r: region });
-                actualizarUI();
-                if (gatosColocados === 8) { mensajeDiv.innerText = "🏆 ¡Miau-tástico!"; mensajeDiv.style.color = "#4ecf4e"; btnReiniciar.innerText = "Siguiente Nivel"; btnReiniciar.style.display = "block"; }
+                actualizarUI(); // Igual aquí, usa actualizarContadorGatos() si tu código clásico usaba ese nombre
+                
+                // Disparamos el auto-marcado
+                if (modoFacil) {
+                    marcarAutomaticamente(fila, col, region);
+                }
+
+                if (gatosColocados === 8) { 
+                    mensajeDiv.innerText = "🏆 ¡Miau-tástico!"; 
+                    mensajeDiv.style.color = "#4ecf4e"; 
+                    btnReiniciar.innerText = "Siguiente Nivel"; 
+                    btnReiniciar.style.display = "block"; 
+                }
             }
         }
 
