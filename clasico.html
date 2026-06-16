@@ -423,7 +423,8 @@
             if (celda.innerText === '🐱') {
                 celda.innerText = '';
                 celdasGatos = celdasGatos.filter(g => g.f !== fila || g.c !== col);
-                actualizarUI(); // Asumiendo que tu función de actualizar UI se llama así, sino usa actualizarContadorGatos()
+                actualizarUI(); 
+                recalcularMarcas(); // <--- ¡ESTA ES LA LÍNEA CLAVE QUE FALTABA AQUÍ!
                 return;
             }
             
@@ -447,8 +448,7 @@
                 celda.innerText = '🐱'; 
                 celda.classList.remove('marcada');
                 celdasGatos.push({ f: fila, c: col, r: region });
-                actualizarUI(); // Igual aquí, usa actualizarContadorGatos() si tu código clásico usaba ese nombre
-                recalcularMarcas();
+                actualizarUI(); 
                 
                 // Disparamos el auto-marcado
                 if (modoFacil) {
