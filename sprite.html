@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meowdokku - Puzzle Lógico</title>
+    <title>Spritedokku - Puzzle Lógico</title>
     <style>
         :root {
             --bg-color: #f4f4f9;
@@ -191,26 +191,34 @@
         .icono-sprite-5 { background-image: url('sprite5.png'); }
         .icono-sprite-6 { background-image: url('sprite6.png'); }
         .icono-sprite-7 { background-image: url('sprite7.png'); }
+
+        /* Ajusta la imagen para que encaje perfectamente con el texto */
+        .icono-texto {
+            height: 1.1em; /* Escala automáticamente según el tamaño de la letra */
+            vertical-align: middle; /* Alinea la imagen al centro del texto */
+            margin-bottom: 4px; /* Pequeño ajuste para que no se vea caída */
+        }
+        
     </style>
 </head>
 <body>
 
     <header>
-        <h1>🐱 Meowdokku</h1>
+        <h1><img src="sprite8.png" class="icono-texto" alt="Gato"> Spritedokku</h1>
         <button id="btn-mode" onclick="toggleDarkMode()">🌙 Modo</button>
     </header>
     
     <div class="reglas">
         <h3>Reglas del Juego:</h3>
         <ul>
-            <li>Encuentra los <strong>8 gatos</strong> escondidos.</li>
-            <li>Solo puede haber <strong>1 gato por cada color</strong>.</li>
-            <li>Solo puede haber <strong>1 gato por fila y por columna</strong>.</li>
-            <li>Los gatos <strong>no pueden tocarse</strong> (ni en diagonal).</li>
+            <li>Encuentra los <strong>8 sprites</strong> escondidos.</li>
+            <li>Solo puede haber <strong>1 sprite por cada color</strong>.</li>
+            <li>Solo puede haber <strong>1 sprite por fila y por columna</strong>.</li>
+            <li>Los sprites <strong>no pueden tocarse</strong> (ni en diagonal).</li>
             <li>
                 <span class="texto-pc"><strong>Clic izquierdo</strong></span>
                 <span class="texto-movil"><strong>Tocar</strong></span> 
-                para poner o quitar un gato.
+                para poner o quitar un sprite.
             </li>
             <li>
                 <span class="texto-pc"><strong>Clic derecho</strong></span>
@@ -221,7 +229,7 @@
 
     <div class="info">
         <div class="vidas">Vidas: <span id="contador-vidas">3</span> ❤️</div>
-        <div class="gatos">Gatos: <span id="contador-gatos">0</span> / 8 🐱</div>
+        <div class="gatos">Gatos: <span id="contador-gatos">0</span> / 8 <img src="sprite8.png" class="icono-texto" alt="Gato"></div>
     </div>
     
     <div id="contenedor-juego">
