@@ -372,18 +372,17 @@
             if (vidas <= 0 || gatosColocados === 8) return;
             const region = parseInt(celda.dataset.region);
             if (celda.classList.contains('tiene-gato')) {
-                celda.classList.remove('tiene-gato', `icono-gato-${region}`);
+                celda.classList.remove('tiene-gato', `icono-sprite-${region}`);
                 celdasGatos = celdasGatos.filter(g => g.f !== fila || g.c !== col);
                 actualizarUI(); return;
             }
-            const region = parseInt(celda.dataset.region);
             const error = validar(fila, col, region);
             if (error) {
                 vidas--; vidasSpan.innerText = vidas;
                 mensajeDiv.innerText = `❌ ${error}`;
                 if (vidas === 0) { mensajeDiv.innerText = "💀 Juego Terminado"; btnReiniciar.innerText = "Reintentar"; btnReiniciar.style.display = "block"; }
             } else {
-                celda.classList.add('tiene-gato', `icono-gato-${region}`); celda.classList.remove('marcada');
+                celda.classList.add('tiene-gato', `icono-sprite-${region}`); celda.classList.remove('marcada');
                 celdasGatos.push({ f: fila, c: col, r: region });
                 actualizarUI();
                 if (gatosColocados === 8) { mensajeDiv.innerText = "🏆 ¡Miau-tástico!"; mensajeDiv.style.color = "#4ecf4e"; btnReiniciar.innerText = "Siguiente Nivel"; btnReiniciar.style.display = "block"; }
