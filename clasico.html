@@ -231,6 +231,19 @@
         let celdasGatos = [];
         let modoFacil = false;
 
+        const tableroDiv = document.getElementById('tablero');
+        const vidasSpan = document.getElementById('contador-vidas');
+        const gatosSpan = document.getElementById('contador-gatos');
+        const mensajeDiv = document.getElementById('mensaje');
+        const btnReiniciar = document.getElementById('btn-reiniciar');
+        const pantallaCarga = document.getElementById('pantalla-carga');
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const btn = document.getElementById('btn-mode');
+            btn.innerText = document.body.classList.contains('dark-mode') ? "☀️ Modo" : "🌙 Modo";
+        }
+
         function toggleModoFacil() {
             modoFacil = document.getElementById('check-facil').checked;
             const cajaVidas = document.getElementById('caja-vidas');
@@ -240,10 +253,10 @@
             } else {
                 cajaVidas.style.display = 'block'; 
             }
-            // ¡Nueva línea!
             recalcularMarcas();
         }
 
+        // Asistente que pinta las casillas prohibidas
         function marcarAutomaticamente(filaColocada, colColocada, regionColocada) {
             const todasLasCasillas = document.querySelectorAll('.casilla');
             
@@ -258,8 +271,8 @@
                 let tocaDiagonal = (Math.abs(f - filaColocada) <= 1 && Math.abs(c - colColocada) <= 1);
                 
                 if (mismaFila || mismaColumna || mismaRegion || tocaDiagonal) {
-                    // ATENCIÓN AQUÍ: Verificamos que no haya un emoji de gato ni una X
-                    if (celda.innerText !== '🐱' && celda.innerText !== '❌') {
+                    // Validamos usando la clase en lugar del texto, es 100% seguro
+                    if (celda.innerText !== '🐱' && !celda.classList.contains('marcada')) {
                         celda.innerText = '❌';
                         celda.classList.add('marcada');
                     }
@@ -267,17 +280,19 @@
             });
         }
 
+        // Limpia el tablero y vuelve a pintar solo lo necesario
         function recalcularMarcas() {
-            // 1. Limpiamos TODAS las marcas "❌" del tablero
             const todasLasCasillas = document.querySelectorAll('.casilla');
+            
+            // 1. Borramos TODAS las marcas usando la clase CSS
             todasLasCasillas.forEach(celda => {
-                if (celda.innerText === '❌') {
+                if (celda.classList.contains('marcada')) {
                     celda.innerText = '';
                     celda.classList.remove('marcada');
                 }
             });
 
-            // 2. Si el modo fácil está activo, repintamos las marcas de los gatos que aún quedan
+            // 2. Si el modo fácil está activo, repintamos las marcas de los gatos vivos
             if (modoFacil) {
                 celdasGatos.forEach(gato => {
                     marcarAutomaticamente(gato.f, gato.c, gato.r);
@@ -285,20 +300,83 @@
             }
         }
 
-        const tableroDiv = document.getElementById('tablero');
-        const vidasSpan = document.getElementById('contador-vidas');
-        const gatosSpan = document.getElementById('contador-gatos');
-        const mensajeDiv = document.getElementById('mensaje');
-        const btnReiniciar = document.getElementById('btn-reiniciar');
-        const pantallaCarga = document.getElementById('pantalla-carga');
+        function manejarClic(celda, fila, col) {
+            // No bloqueamos por vidas si el Modo Fácil está activo
+            if ((vidas <= 0 && !modoFacil) || gatosColocados === 8) return;
+            
+            const region = parseInt(celda.dataset.region);
+            
+            // SI QUITAMOS UN GATO
+            if (celda.innerText === '🐱') {
+                celda.innerText = '';
+                celdasGatos = celdasGatos.filter(g => g.f !== fila || g.c !== col);
+                actualizarUI();
+                recalcularMarcas(); // Llama a la limpieza automáticamente
+                return;
+            }
+            
+            // SI PONEMOS UN GATO
+            const error = validar(fila, col, region);
+            if (error) {
+                if (!modoFacil) { 
+                    vidas--; 
+                    vidasSpan.innerText = vidas;
+                    mensajeDiv.innerText = `❌ ${error}`;
+                    if (vidas === 0) { 
+                        mensajeDiv.innerText = "💀 Juego Terminado"; 
+                        btnReiniciar.innerText = "Reintentar"; 
+                        btnReiniciar.style.display = "block"; 
+                    }
+                } else {
+                    mensajeDiv.innerText = `❌ ${error}`;
+                }
+            } else {
+                celda.innerText = '🐱'; 
+                celda.classList.remove('marcada');
+                celdasGatos.push({ f: fila, c: col, r: region });
+                actualizarUI();
+                
+                // Actualizamos las marcas (limpia y repinta todo perfecto)
+                recalcularMarcas(); 
 
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            const btn = document.getElementById('btn-mode');
-            btn.innerText = document.body.classList.contains('dark-mode') ? "☀️ Modo" : "🌙 Modo";
+                if (gatosColocados === 8) { 
+                    mensajeDiv.innerText = "🏆 ¡Miau-tástico!"; 
+                    mensajeDiv.style.color = "#4ecf4e"; 
+                    btnReiniciar.innerText = "Siguiente Nivel"; 
+                    btnReiniciar.style.display = "block"; 
+                }
+            }
         }
 
-        // Algoritmo Procedural (Paso 1: Gatos, Paso 2: Regiones, Paso 3: Solver)
+        function manejarClicDerecho(celda) {
+            if ((vidas <= 0 && !modoFacil) || gatosColocados === 8) return; 
+            if (celda.innerText === '🐱') return;
+            
+            if (celda.classList.contains('marcada')) {
+                celda.innerText = '';
+                celda.classList.remove('marcada');
+            } else {
+                celda.innerText = '❌';
+                celda.classList.add('marcada');
+            }
+        }
+
+        function validar(f, c, r) {
+            for (let g of celdasGatos) {
+                if (g.f === f) return "Fila ocupada";
+                if (g.c === c) return "Columna ocupada";
+                if (g.r === r) return "Color ocupado";
+                if (Math.abs(g.f - f) <= 1 && Math.abs(g.c - c) <= 1) return "Gatos muy cerca";
+            }
+            return null;
+        }
+
+        function actualizarUI() {
+            gatosColocados = celdasGatos.length;
+            gatosSpan.innerText = gatosColocados;
+        }
+
+        // --- Algoritmo Procedural ---
         function generarGatosSecretos() {
             let posiciones = [];
             function buscar(fila) {
@@ -385,6 +463,10 @@
             mensajeDiv.innerText = ""; btnReiniciar.style.display = "none";
             tableroDiv.innerHTML = ""; pantallaCarga.style.display = "flex"; 
 
+            // Reiniciar el botón de modo fácil
+            document.getElementById('check-facil').checked = false;
+            toggleModoFacil();
+
             setTimeout(() => {
                 mapaActual = generarNivelProcedural();
                 dibujarTablero();
@@ -404,79 +486,6 @@
                     tableroDiv.appendChild(celda);
                 }
             }
-        }
-
-        function manejarClicDerecho(celda) {
-            if (vidas <= 0 || gatosColocados === 8) return; 
-            if (celda.innerText === '🐱') return;
-            celda.innerText = celda.innerText === '❌' ? '' : '❌';
-            celda.classList.toggle('marcada', celda.innerText === '❌');
-        }
-
-        function manejarClic(celda, fila, col) {
-            // No bloqueamos por vidas si el Modo Fácil está activo
-            if ((vidas <= 0 && !modoFacil) || gatosColocados === 8) return;
-            
-            const region = parseInt(celda.dataset.region);
-            
-            // Si hacemos clic en un gato ya puesto, lo quitamos
-            if (celda.innerText === '🐱') {
-                celda.innerText = '';
-                celdasGatos = celdasGatos.filter(g => g.f !== fila || g.c !== col);
-                actualizarUI(); 
-                recalcularMarcas(); // <--- ¡ESTA ES LA LÍNEA CLAVE QUE FALTABA AQUÍ!
-                return;
-            }
-            
-            const error = validar(fila, col, region);
-            if (error) {
-                if (!modoFacil) { 
-                    // PENALIZACIÓN NORMAL
-                    vidas--; vidasSpan.innerText = vidas;
-                    mensajeDiv.innerText = `❌ ${error}`;
-                    if (vidas === 0) { 
-                        mensajeDiv.innerText = "💀 Juego Terminado"; 
-                        btnReiniciar.innerText = "Reintentar"; 
-                        btnReiniciar.style.display = "block"; 
-                    }
-                } else {
-                    // MODO FÁCIL: Solo avisa, no quita vidas
-                    mensajeDiv.innerText = `❌ ${error}`;
-                }
-            } else {
-                // MOVIMIENTO VÁLIDO: Ponemos el emoji del gato
-                celda.innerText = '🐱'; 
-                celda.classList.remove('marcada');
-                celdasGatos.push({ f: fila, c: col, r: region });
-                actualizarUI(); 
-                
-                // Disparamos el auto-marcado
-                if (modoFacil) {
-                    marcarAutomaticamente(fila, col, region);
-                }
-
-                if (gatosColocados === 8) { 
-                    mensajeDiv.innerText = "🏆 ¡Miau-tástico!"; 
-                    mensajeDiv.style.color = "#4ecf4e"; 
-                    btnReiniciar.innerText = "Siguiente Nivel"; 
-                    btnReiniciar.style.display = "block"; 
-                }
-            }
-        }
-
-        function validar(f, c, r) {
-            for (let g of celdasGatos) {
-                if (g.f === f) return "Fila ocupada";
-                if (g.c === c) return "Columna ocupada";
-                if (g.r === r) return "Color ocupado";
-                if (Math.abs(g.f - f) <= 1 && Math.abs(g.c - c) <= 1) return "Gatos muy cerca";
-            }
-            return null;
-        }
-
-        function actualizarUI() {
-            gatosColocados = celdasGatos.length;
-            gatosSpan.innerText = gatosColocados;
         }
 
         iniciarNuevaPartida();
