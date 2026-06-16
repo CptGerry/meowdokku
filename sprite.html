@@ -253,45 +253,8 @@
         let mapaActual = [];
         let vidas = 3;
         let gatosColocados = 0;
-        let celdasGatos = []; 
+        let celdasGatos = [];
         let modoFacil = false;
-
-        function toggleModoFacil() {
-            modoFacil = document.getElementById('check-facil').checked;
-            const cajaVidas = document.getElementById('caja-vidas');
-            
-            // Oculta las vidas si está activado, las muestra si está desactivado
-            if (modoFacil) {
-                cajaVidas.style.display = 'none'; 
-            } else {
-                cajaVidas.style.display = 'block'; 
-            }
-        }
-
-        // El asistente que marca las zonas prohibidas automáticamente
-        function marcarAutomaticamente(filaColocada, colColocada, regionColocada) {
-            const todasLasCasillas = document.querySelectorAll('.casilla');
-            
-            todasLasCasillas.forEach(celda => {
-                let f = parseInt(celda.dataset.fila);
-                let c = parseInt(celda.dataset.col);
-                let r = parseInt(celda.dataset.region);
-                
-                // Calculamos si la casilla choca con las 4 reglas del juego
-                let mismaFila = (f === filaColocada);
-                let mismaColumna = (c === colColocada);
-                let mismaRegion = (r === regionColocada);
-                let tocaDiagonal = (Math.abs(f - filaColocada) <= 1 && Math.abs(c - colColocada) <= 1);
-                
-                if (mismaFila || mismaColumna || mismaRegion || tocaDiagonal) {
-                    // Solo marcamos si está vacía (no es un sprite ya colocado ni tiene una X)
-                    if (!celda.classList.contains('tiene-gato') && celda.innerText !== '❌') {
-                        celda.innerText = '❌';
-                        celda.classList.add('marcada');
-                    }
-                }
-            });
-        }
 
         const tableroDiv = document.getElementById('tablero');
         const vidasSpan = document.getElementById('contador-vidas');
@@ -306,7 +269,140 @@
             btn.innerText = document.body.classList.contains('dark-mode') ? "☀️ Modo" : "🌙 Modo";
         }
 
-        // Algoritmo Procedural (Paso 1: Gatos, Paso 2: Regiones, Paso 3: Solver)
+        function toggleModoFacil() {
+            modoFacil = document.getElementById('check-facil').checked;
+            const cajaVidas = document.getElementById('caja-vidas');
+            
+            if (modoFacil) {
+                cajaVidas.style.display = 'none'; 
+            } else {
+                cajaVidas.style.display = 'block'; 
+            }
+            recalcularMarcas();
+        }
+
+        // Asistente que pinta las casillas prohibidas
+        function marcarAutomaticamente(filaColocada, colColocada, regionColocada) {
+            const todasLasCasillas = document.querySelectorAll('.casilla');
+            
+            todasLasCasillas.forEach(celda => {
+                let f = parseInt(celda.dataset.fila);
+                let c = parseInt(celda.dataset.col);
+                let r = parseInt(celda.dataset.region);
+                
+                let mismaFila = (f === filaColocada);
+                let mismaColumna = (c === colColocada);
+                let mismaRegion = (r === regionColocada);
+                let tocaDiagonal = (Math.abs(f - filaColocada) <= 1 && Math.abs(c - colColocada) <= 1);
+                
+                if (mismaFila || mismaColumna || mismaRegion || tocaDiagonal) {
+                    // VERSIÓN SPRITE: Buscamos que NO tenga la clase 'tiene-gato' ni la clase 'marcada'
+                    if (!celda.classList.contains('tiene-gato') && !celda.classList.contains('marcada')) {
+                        celda.innerText = '❌';
+                        celda.classList.add('marcada');
+                    }
+                }
+            });
+        }
+
+        // Limpia el tablero y vuelve a pintar solo lo necesario
+        function recalcularMarcas() {
+            const todasLasCasillas = document.querySelectorAll('.casilla');
+            
+            // 1. Borramos TODAS las marcas usando la clase CSS
+            todasLasCasillas.forEach(celda => {
+                if (celda.classList.contains('marcada')) {
+                    celda.innerText = '';
+                    celda.classList.remove('marcada');
+                }
+            });
+
+            // 2. Si el modo fácil está activo, repintamos las marcas de los sprites vivos
+            if (modoFacil) {
+                celdasGatos.forEach(gato => {
+                    marcarAutomaticamente(gato.f, gato.c, gato.r);
+                });
+            }
+        }
+
+        function manejarClic(celda, fila, col) {
+            // No bloqueamos por vidas si el Modo Fácil está activo
+            if ((vidas <= 0 && !modoFacil) || gatosColocados === 8) return;
+            
+            const region = parseInt(celda.dataset.region);
+            
+            // SI QUITAMOS UN SPRITE
+            if (celda.classList.contains('tiene-gato')) {
+                celda.classList.remove('tiene-gato', `icono-sprite-${region}`);
+                celdasGatos = celdasGatos.filter(g => g.f !== fila || g.c !== col);
+                actualizarUI();
+                recalcularMarcas(); // Llama a la limpieza automáticamente
+                return;
+            }
+            
+            // SI PONEMOS UN SPRITE
+            const error = validar(fila, col, region);
+            if (error) {
+                if (!modoFacil) { 
+                    vidas--; 
+                    vidasSpan.innerText = vidas;
+                    mensajeDiv.innerText = `❌ ${error}`;
+                    if (vidas === 0) { 
+                        mensajeDiv.innerText = "💀 Juego Terminado"; 
+                        btnReiniciar.innerText = "Reintentar"; 
+                        btnReiniciar.style.display = "block"; 
+                    }
+                } else {
+                    mensajeDiv.innerText = `❌ ${error}`;
+                }
+            } else {
+                celda.classList.add('tiene-gato', `icono-sprite-${region}`); 
+                celda.classList.remove('marcada');
+                celdasGatos.push({ f: fila, c: col, r: region });
+                actualizarUI();
+                
+                // Actualizamos las marcas (limpia y repinta todo perfecto)
+                recalcularMarcas(); 
+
+                if (gatosColocados === 8) { 
+                    mensajeDiv.innerText = "🏆 ¡Excelente!"; 
+                    mensajeDiv.style.color = "#4ecf4e"; 
+                    btnReiniciar.innerText = "Siguiente Nivel"; 
+                    btnReiniciar.style.display = "block"; 
+                }
+            }
+        }
+
+        function manejarClicDerecho(celda) {
+            if ((vidas <= 0 && !modoFacil) || gatosColocados === 8) return; 
+            // VERSIÓN SPRITE: Validamos la clase
+            if (celda.classList.contains('tiene-gato')) return;
+            
+            if (celda.classList.contains('marcada')) {
+                celda.innerText = '';
+                celda.classList.remove('marcada');
+            } else {
+                celda.innerText = '❌';
+                celda.classList.add('marcada');
+            }
+        }
+
+        function validar(f, c, r) {
+            for (let g of celdasGatos) {
+                if (g.f === f) return "Fila ocupada";
+                if (g.c === c) return "Columna ocupada";
+                if (g.r === r) return "Color ocupado";
+                if (Math.abs(g.f - f) <= 1 && Math.abs(g.c - c) <= 1) return "Sprites muy cerca";
+            }
+            return null;
+        }
+
+        function actualizarUI() {
+            gatosColocados = celdasGatos.length;
+            gatosSpan.innerText = gatosColocados;
+        }
+
+        // --- Algoritmo Procedural ---
         function generarGatosSecretos() {
             let posiciones = [];
             function buscar(fila) {
@@ -393,6 +489,10 @@
             mensajeDiv.innerText = ""; btnReiniciar.style.display = "none";
             tableroDiv.innerHTML = ""; pantallaCarga.style.display = "flex"; 
 
+            // Reiniciar el botón de modo fácil
+            document.getElementById('check-facil').checked = false;
+            toggleModoFacil();
+
             setTimeout(() => {
                 mapaActual = generarNivelProcedural();
                 dibujarTablero();
@@ -412,77 +512,6 @@
                     tableroDiv.appendChild(celda);
                 }
             }
-        }
-
-        function manejarClicDerecho(celda) {
-            if (vidas <= 0 || gatosColocados === 8) return; 
-            if (celda.classList.contains('tiene-gato')) return;
-            celda.innerText = celda.innerText === '❌' ? '' : '❌';
-            celda.classList.toggle('marcada', celda.innerText === '❌');
-        }
-
-        function manejarClic(celda, fila, col) {
-            // Ya no bloqueamos si vidas <= 0 mientras el Modo Fácil esté activo
-            if ((vidas <= 0 && !modoFacil) || gatosColocados === 8) return;
-            
-            const region = parseInt(celda.dataset.region);
-            
-            if (celda.classList.contains('tiene-gato')) {
-                celda.classList.remove('tiene-gato', `icono-sprite-${region}`);
-                celdasGatos = celdasGatos.filter(g => g.f !== fila || g.c !== col);
-                actualizarUI(); 
-                return;
-            }
-            
-            const error = validar(fila, col, region);
-            if (error) {
-                if (!modoFacil) { 
-                    // PENALIZACIÓN NORMAL
-                    vidas--; vidasSpan.innerText = vidas;
-                    mensajeDiv.innerText = `❌ ${error}`;
-                    if (vidas === 0) { 
-                        mensajeDiv.innerText = "💀 Juego Terminado"; 
-                        btnReiniciar.innerText = "Reintentar"; 
-                        btnReiniciar.style.display = "block"; 
-                    }
-                } else {
-                    // MODO FÁCIL: Solo avisa del error, pero no quita vidas
-                    mensajeDiv.innerText = `❌ ${error}`;
-                }
-            } else {
-                // MOVIMIENTO VÁLIDO
-                celda.classList.add('tiene-gato', `icono-sprite-${region}`); 
-                celda.classList.remove('marcada');
-                celdasGatos.push({ f: fila, c: col, r: region });
-                actualizarUI();
-                
-                // ¡Disparar la magia del Modo Fácil!
-                if (modoFacil) {
-                    marcarAutomaticamente(fila, col, region);
-                }
-
-                if (gatosColocados === 8) { 
-                    mensajeDiv.innerText = "🏆 ¡Excelente!"; 
-                    mensajeDiv.style.color = "#4ecf4e"; 
-                    btnReiniciar.innerText = "Siguiente Nivel"; 
-                    btnReiniciar.style.display = "block"; 
-                }
-            }
-        }
-
-        function validar(f, c, r) {
-            for (let g of celdasGatos) {
-                if (g.f === f) return "Fila ocupada";
-                if (g.c === c) return "Columna ocupada";
-                if (g.r === r) return "Color ocupado";
-                if (Math.abs(g.f - f) <= 1 && Math.abs(g.c - c) <= 1) return "Gatos muy cerca";
-            }
-            return null;
-        }
-
-        function actualizarUI() {
-            gatosColocados = celdasGatos.length;
-            gatosSpan.innerText = gatosColocados;
         }
 
         iniciarNuevaPartida();
