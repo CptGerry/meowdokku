@@ -62,16 +62,17 @@ HTML
         .btn-clasico { background-color: #ff9f43; } /* Naranja */
         .btn-tematico { background-color: #007BFF; } /* Azul */
         
+        /* Ajuste para que el sprite8 encaje bien dentro del botón */
         .icono-texto {
-            height: 1.1em;
+            height: 1.2em;
             vertical-align: middle;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
     </style>
 </head>
 <body>
 
-    <h1><img src="sprite8.png" class="icono-texto" alt="Sprite" onerror="this.style.display='none'"> Meowdokku</h1>
+    <h1>🐱 Meowdokku</h1>
     
     <div class="menu-contenedor">
         <h2>Menú Principal</h2>
@@ -79,7 +80,9 @@ HTML
 
         <a href="clasico.html" class="btn-menu btn-clasico">🐱 Modo Clásico</a>
         
-        <a href="sprite.html" class="btn-menu btn-tematico">⭐ Modo Sprites</a>
+        <a href="tematico.html" class="btn-menu btn-tematico">
+            <img src="sprite8.png" class="icono-texto" alt="Sprite"> Modo Sprites
+        </a>
     </div>
 
 </body>
